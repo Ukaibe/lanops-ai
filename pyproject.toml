@@ -1,0 +1,31 @@
+[project]
+name = "lanops-ai"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "dnspython>=2.8,<3",
+    "fastapi>=0.141.1",
+    "httpx>=0.28,<1",
+    "langchain-core>=1.2,<2",
+    "langchain-ollama>=1.0,<2",
+    "langgraph>=1.0,<2",
+    "paramiko>=4.0,<5",
+    "pydantic-settings>=2.12,<3",
+    "pysnmp>=7.1,<8",
+    "pywinrm>=0.5,<1",
+    "python-multipart>=0.0.22,<1",
+    "uvicorn>=0.52.4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9,<10", "pytest-asyncio>=1.3,<2", "ruff>=0.15,<1"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+extend-exclude = [".uv-cache"]
+line-length = 100
+target-version = "py312"

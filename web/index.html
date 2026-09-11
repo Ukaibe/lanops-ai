@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LAN Ops AI</title>
+  <style>
+    body{font:16px system-ui;background:#09111f;color:#dce7f5;margin:0}main{max-width:900px;margin:auto;padding:32px}
+    h1{color:#64d8cb}.card{background:#111e31;border:1px solid #263b55;border-radius:12px;padding:20px}
+    textarea{box-sizing:border-box;width:100%;min-height:110px;background:#08111e;color:#fff;border:1px solid #3c5878;border-radius:8px;padding:12px}
+    button{margin-top:10px;background:#32b8a9;color:#04110f;border:0;border-radius:7px;padding:10px 18px;font-weight:700}
+    pre{white-space:pre-wrap;line-height:1.45}.muted{color:#91a5bc}
+  </style>
+</head>
+<body><main><h1>LAN Ops AI</h1><p class="muted">Local diagnostics powered by Gemma, LangGraph, and your runbooks.</p>
+<section class="card"><textarea id="q" placeholder="Example: Ping 192.168.1.1 and explain any packet loss"></textarea>
+<button id="send" type="button">Run diagnosis</button><pre id="result">Ready.</pre></section></main>
+<script>
+const makeId=()=>globalThis.crypto?.randomUUID?.()||`lan-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const id=makeId(),button=document.querySelector('#send'),question=document.querySelector('#q'),out=document.querySelector('#result');
+button.addEventListener('click',async()=>{const message=question.value.trim();if(!message){out.textContent='Enter a diagnostic question first.';return}button.disabled=true;button.textContent='Diagnosing…';out.textContent='Gemma is analyzing the request. The first response can take about a minute…';try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,thread_id:id})});const data=await r.json();if(!r.ok)throw new Error(data.detail||`Request failed (${r.status})`);out.textContent=data.answer||'The agent returned an empty response.'}catch(e){out.textContent=`Diagnosis failed: ${e.message||e}`}finally{button.disabled=false;button.textContent='Run diagnosis'}});
+</script></body></html>

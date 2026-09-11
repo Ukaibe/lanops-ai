@@ -1,0 +1,14 @@
+.env
+.venv/
+.uv-cache/
+.pytest_cache/
+.ruff_cache/
+.idea/
+__pycache__/
+*.py[cod]
+*.log
+
+# Runtime data
+data/
+ollama-data/
+

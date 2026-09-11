@@ -1,0 +1,13 @@
+# Test your FastAPI endpoints
+
+GET http://127.0.0.1:8000/api/health
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/api/chat
+Content-Type: application/json
+
+{"message": "Ping 127.0.0.1 and summarize the result"}
+
+###
