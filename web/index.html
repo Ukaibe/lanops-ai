@@ -11,11 +11,11 @@
     pre{white-space:pre-wrap;line-height:1.45}.muted{color:#91a5bc}
   </style>
 </head>
-<body><main><h1>LAN Ops AI</h1><p class="muted">Local diagnostics powered by Gemma, LangGraph, and your runbooks.</p>
+<body><main><h1>LAN Ops AI</h1><p class="muted">Diagnostics powered by Gemini, LangGraph, and your runbooks.</p>
 <section class="card"><textarea id="q" placeholder="Example: Ping 192.168.1.1 and explain any packet loss"></textarea>
 <button id="send" type="button">Run diagnosis</button><pre id="result">Ready.</pre></section></main>
 <script>
 const makeId=()=>globalThis.crypto?.randomUUID?.()||`lan-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const id=makeId(),button=document.querySelector('#send'),question=document.querySelector('#q'),out=document.querySelector('#result');
-button.addEventListener('click',async()=>{const message=question.value.trim();if(!message){out.textContent='Enter a diagnostic question first.';return}button.disabled=true;button.textContent='Diagnosing…';out.textContent='Gemma is analyzing the request. The first response can take about a minute…';try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,thread_id:id})});const data=await r.json();if(!r.ok)throw new Error(data.detail||`Request failed (${r.status})`);out.textContent=data.answer||'The agent returned an empty response.'}catch(e){out.textContent=`Diagnosis failed: ${e.message||e}`}finally{button.disabled=false;button.textContent='Run diagnosis'}});
+button.addEventListener('click',async()=>{const message=question.value.trim();if(!message){out.textContent='Enter a diagnostic question first.';return}button.disabled=true;button.textContent='Diagnosing...';const controller=new AbortController(),started=Date.now(),timer=setInterval(()=>{out.textContent=`Gemini is analyzing the request... ${Math.floor((Date.now()-started)/1000)}s elapsed`},1000),abort=setTimeout(()=>controller.abort(),125000);out.textContent='Gemini is analyzing the request...';try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,thread_id:id}),signal:controller.signal});const data=await r.json();if(!r.ok)throw new Error(data.detail||`Request failed (${r.status})`);out.textContent=data.answer||'The agent returned an empty response.'}catch(e){out.textContent=e.name==='AbortError'?'Diagnosis timed out. Check Gemini API connectivity and quota, then retry.':`Diagnosis failed: ${e.message||e}`}finally{clearInterval(timer);clearTimeout(abort);button.disabled=false;button.textContent='Run diagnosis'}});
 </script></body></html>

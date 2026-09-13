@@ -140,4 +140,12 @@ def recent_syslog(limit: int = 50, contains: str = "") -> str:
     return json.dumps(rows[-max(1, min(limit, 100)) :], indent=2)
 
 
-TOOLS = [ping, dns_lookup, snmp_get, ssh_command, powershell_winrm, search_runbooks, recent_syslog]
+TOOLS = [
+    ping,
+    dns_lookup,
+    snmp_get,
+    ssh_command,
+    powershell_winrm,
+    search_runbooks,
+    recent_syslog,
+]

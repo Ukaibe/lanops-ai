@@ -2,7 +2,7 @@ services:
   nginx:
     image: nginx:1.29-alpine
     ports:
-      - "8080:80"
+      - "127.0.0.1:8081:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./web:/usr/share/nginx/html:ro
@@ -18,14 +18,18 @@ services:
         required: false
     environment:
       LANOPS_OLLAMA_URL: http://ollama:11434
+      LANOPS_OLLAMA_FAILOVER_URL: http://host.docker.internal:11434
       LANOPS_RAG_PATH: /data/rag.json
       LANOPS_SYSLOG_PATH: /data/syslog.log
     expose:
       - "8000"
     ports:
+      - "127.0.0.1:8001:8000"
       - "1514:1514/udp"
     volumes:
       - lanops-data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       ollama:
         condition: service_healthy
@@ -49,7 +53,7 @@ services:
     environment:
       OLLAMA_HOST: http://ollama:11434
     entrypoint: ["/bin/sh", "-c"]
-    command: ["ollama pull gemma3:4b && ollama pull nomic-embed-text"]
+    command: ["ollama pull nomic-embed-text"]
     depends_on:
       ollama:
         condition: service_healthy

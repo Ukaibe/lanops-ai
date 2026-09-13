@@ -1,12 +1,17 @@
 # LAN Ops AI
 
-A local-first network operations assistant built with FastAPI, LangGraph, Ollama/Gemma, Nginx, and Docker Compose. It can perform allowlisted ping, DNS, SNMP, SSH, WinRM/PowerShell, syslog, and runbook retrieval operations.
+A network operations assistant built with FastAPI, LangGraph, Gemini, Ollama embeddings, Nginx, and Docker Compose. It can perform allowlisted ping, DNS, SNMP, SSH, WinRM/PowerShell, syslog, and runbook retrieval operations.
+
+Gemini is the primary chat provider. If it is unavailable, the agent automatically falls back to the local Ollama model configured by `LANOPS_OLLAMA_FAILOVER_MODEL`.
 
 ## Run
 
-1. Copy `.env.example` to `.env` and adjust the allowed networks and credentials.
-2. Run `docker compose up --build` (the first start downloads Gemma and the embedding model).
-3. Open `http://localhost:8080`; API documentation is at `http://localhost:8080/api/docs`.
+1. Copy `.env.example` to `.env`, set `GEMINI_API_KEY`, and adjust the allowed networks and credentials.
+2. Run `docker compose up --build` (the first start downloads the embedding model).
+3. On Windows Docker Desktop, start the host gateway with `uv run uvicorn lanops_ai.host_gateway:app --host 0.0.0.0 --port 8080`.
+4. Open `http://localhost:8080`; API documentation is at `http://localhost:8080/api/docs`.
+
+LAN browsers should use `http://<server-lan-ip>:8080`; the host listener preserves each client's real LAN source address before proxying to the loopback-only Docker API port.
 
 Send network devices to the syslog listener on UDP port `1514`. Index a runbook with:
 
