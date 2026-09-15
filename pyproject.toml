@@ -1,7 +1,7 @@
 [project]
 name = "lanops-ai"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "dnspython>=2.8,<3",
     "fastapi>=0.141.1",
@@ -16,6 +16,7 @@ dependencies = [
     "python-multipart>=0.0.22,<1",
     "uvicorn>=0.52.4",
     "langchain-google-genai>=4,<5",
+    "mcp>=1.26,<2",
 ]
 
 [project.optional-dependencies]
@@ -29,4 +30,4 @@ testpaths = ["tests"]
 [tool.ruff]
 extend-exclude = [".uv-cache"]
 line-length = 100
-target-version = "py312"
+target-version = "py314"

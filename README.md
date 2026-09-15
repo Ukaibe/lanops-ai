@@ -23,6 +23,18 @@ curl -X POST http://localhost:8080/api/knowledge \
 
 Remote command tools are off by default. Enable them only on a trusted management network. SSH requires known host keys and rejects unknown hosts. Production deployments should add authentication/TLS, use Docker secrets, replace SNMP v2c with SNMPv3, and restrict ingress to the management VLAN.
 
+## MCP tools
+
+The agent discovers and invokes its network tools through the MCP Streamable HTTP
+endpoint at `http://127.0.0.1:8000/mcp/`. When running Compose, the loopback-only
+published API port is `8001`, so a host-side MCP client can use
+`http://127.0.0.1:8001/mcp/`. The endpoint exposes `ping`, `dns_lookup`, `snmp_get`,
+`ssh_command`, `powershell_winrm`, `search_runbooks`, and `recent_syslog`.
+
+Set `LANOPS_MCP_URL` if the agent should connect to a separately deployed MCP
+server. Keep that server on the trusted management network: the MCP tool handlers
+apply the same target allowlist and remote-command feature flag as the chat API.
+
 ## Development
 
-Use Python 3.12+: `uv sync --extra dev`, `uv run pytest`, and `uv run ruff check .`.
+Use Python 3.14+: `uv sync --extra dev`, `uv run pytest`, and `uv run ruff check .`.

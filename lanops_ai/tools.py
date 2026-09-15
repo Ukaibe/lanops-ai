@@ -5,7 +5,6 @@ import platform
 import dns.resolver
 import paramiko
 import winrm
-from langchain_core.tools import tool
 from pysnmp.hlapi.v3arch.asyncio import (
     CommunityData,
     ContextData,
@@ -26,7 +25,6 @@ def _clip(value: str, size: int = 12000) -> str:
     return value[:size]
 
 
-@tool
 async def ping(host: str, count: int = 3) -> str:
     """Ping an allowlisted LAN host and return packet statistics."""
     address = await asyncio.to_thread(resolve_allowed_host, host)
@@ -43,7 +41,6 @@ async def ping(host: str, count: int = 3) -> str:
     return _clip(output.decode(errors="replace"))
 
 
-@tool
 async def dns_lookup(name: str, record_type: str = "A") -> str:
     """Resolve A, AAAA, CNAME, MX, NS, PTR, or TXT DNS records."""
     kind = record_type.upper()
@@ -53,7 +50,6 @@ async def dns_lookup(name: str, record_type: str = "A") -> str:
     return json.dumps([answer.to_text() for answer in answers])
 
 
-@tool
 async def snmp_get(host: str, oid: str = "1.3.6.1.2.1.1.1.0") -> str:
     """Read one SNMP v2c OID from an allowlisted device."""
     address = await asyncio.to_thread(resolve_allowed_host, host)
@@ -72,7 +68,6 @@ async def snmp_get(host: str, oid: str = "1.3.6.1.2.1.1.1.0") -> str:
     )
 
 
-@tool
 async def ssh_command(host: str, command: str) -> str:
     """Run a command over SSH when remote commands are explicitly enabled."""
     require_remote_commands()
@@ -100,7 +95,6 @@ async def ssh_command(host: str, command: str) -> str:
     return await asyncio.to_thread(run)
 
 
-@tool
 async def powershell_winrm(host: str, script: str) -> str:
     """Run PowerShell through WinRM when remote commands are explicitly enabled."""
     require_remote_commands()
@@ -125,27 +119,14 @@ async def powershell_winrm(host: str, script: str) -> str:
     return await asyncio.to_thread(run)
 
 
-@tool
 async def search_runbooks(query: str) -> str:
     """Search indexed runbooks and network documentation."""
     return json.dumps(await asyncio.to_thread(knowledge_base.search, query), indent=2)
 
 
-@tool
 def recent_syslog(limit: int = 50, contains: str = "") -> str:
     """Return recent received syslog records, optionally filtered by text."""
     rows = list(RECENT_MESSAGES)
     if contains:
         rows = [row for row in rows if contains.lower() in row["message"].lower()]
     return json.dumps(rows[-max(1, min(limit, 100)) :], indent=2)
-
-
-TOOLS = [
-    ping,
-    dns_lookup,
-    snmp_get,
-    ssh_command,
-    powershell_winrm,
-    search_runbooks,
-    recent_syslog,
-]

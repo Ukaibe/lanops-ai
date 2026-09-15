@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from ipaddress import ip_address
+from ipaddress import IPv4Address, ip_address, ip_network
 from typing import Any
 from uuid import uuid4
 
@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from lanops_ai.config import get_settings
+from lanops_ai.mcp_server import mcp, mcp_app
 from lanops_ai.rag import knowledge_base
 from lanops_ai.services import AgentService, AgentTimeoutError
 from lanops_ai.syslog import RECENT_MESSAGES, start_syslog_server
@@ -16,10 +17,11 @@ from lanops_ai.syslog import RECENT_MESSAGES, start_syslog_server
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.agent_service = AgentService()
-    app.state.syslog_transport = await start_syslog_server()
-    yield
-    app.state.syslog_transport.close()
+    async with mcp.session_manager.run():
+        app.state.agent_service = AgentService()
+        app.state.syslog_transport = await start_syslog_server()
+        yield
+        app.state.syslog_transport.close()
 
 
 app = FastAPI(
@@ -35,6 +37,7 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+app.mount("/mcp", mcp_app, name="mcp")
 
 
 class ChatRequest(BaseModel):
@@ -61,9 +64,29 @@ def _request_client_ip(request: Request) -> str | None:
     if not candidate:
         return None
     try:
-        return str(ip_address(candidate))
+        parsed_candidate = ip_address(candidate)
     except ValueError:
         return None
+
+    # With Docker Desktop port forwarding, Nginx can see the Docker bridge
+    # gateway (for example 172.18.0.1) instead of the Windows host. Only apply
+    # the configured host fallback when both proxy hops are Docker-private
+    # addresses, preserving genuine LAN client addresses forwarded by Nginx.
+    docker_private_network = ip_network("172.16.0.0/12")
+    direct_client = request.client.host if request.client else ""
+    try:
+        parsed_direct_client = ip_address(direct_client)
+    except ValueError:
+        parsed_direct_client = None
+    if (
+        settings.host_ipv4_address
+        and isinstance(parsed_candidate, IPv4Address)
+        and parsed_candidate in docker_private_network
+        and isinstance(parsed_direct_client, IPv4Address)
+        and parsed_direct_client in docker_private_network
+    ):
+        return settings.host_ipv4_address
+    return str(parsed_candidate)
 
 
 @app.get("/api/health")
@@ -88,6 +111,12 @@ async def health() -> dict[str, Any]:
         "model": settings.chat_model,
         "syslog_buffer": len(RECENT_MESSAGES),
     }
+
+
+@app.get("/api/client-ip")
+async def client_ip(request: Request) -> dict[str, str | None]:
+    """Report the browser system address observed by the host gateway."""
+    return {"client_ip": _request_client_ip(request)}
 
 
 @app.post("/api/chat")

@@ -9,7 +9,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
 from lanops_ai.config import get_settings
-from lanops_ai.tools import TOOLS
+from lanops_ai.mcp_client import MCPToolClient
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +69,9 @@ async def _invoke_with_failover(
     return await failover.ainvoke(messages)
 
 
-def build_agent():
+def build_agent(tool_client: MCPToolClient | None = None):
     settings = get_settings()
+
     primary_model = (
         ChatGoogleGenerativeAI(
             model=settings.chat_model,
@@ -90,12 +91,14 @@ def build_agent():
         num_predict=settings.model_max_tokens,
         reasoning=False,
     )
-    tools = {item.name: item for item in TOOLS}
-    descriptions = "\n".join(
-        f"- {item.name}: {item.description}; schema={json.dumps(item.args)}" for item in TOOLS
-    )
+    tool_client = tool_client or MCPToolClient(settings.mcp_url)
 
     async def plan(state: AgentState):
+        available_tools = await tool_client.list_tools()
+        descriptions = "\n".join(
+            f"- {item.name}: {item.description}; schema={json.dumps(item.input_schema)}"
+            for item in available_tools
+        )
         prompt = SYSTEM_PROMPT.format(tools=descriptions)
         if state.get("client_ip"):
             prompt += (
@@ -117,14 +120,10 @@ def build_agent():
     async def execute_tool(state: AgentState):
         action = state["action"] or {}
         name = str(action.get("name", ""))
-        selected = tools.get(name)
-        if selected is None:
-            observation = f"Tool error: unknown tool {name!r}"
-        else:
-            try:
-                observation = await selected.ainvoke(action.get("args", {}))
-            except Exception as exc:  # noqa: BLE001 - tool failures become observations
-                observation = f"Tool error: {exc}"
+        try:
+            observation = await tool_client.call_tool(name, action.get("args", {}))
+        except Exception as exc:  # noqa: BLE001 - tool failures become observations
+            observation = f"Tool error: {exc}"
         return {
             "messages": [
                 HumanMessage(content=f"Tool observation from {name}:\n{observation}\nNow continue.")

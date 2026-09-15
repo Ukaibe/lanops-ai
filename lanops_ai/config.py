@@ -16,6 +16,7 @@ class Settings(BaseSettings):
         )
     )
     agent_timeout_seconds: float = 120.0
+    mcp_url: str = "http://127.0.0.1:8000/mcp/"
     model_max_tokens: int = 128
     ollama_failover_url: str = "http://127.0.0.1:11434"
     ollama_failover_model: str = "qwen3.5:9b"
